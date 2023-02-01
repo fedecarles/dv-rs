@@ -4,8 +4,8 @@ use std::fmt;
 pub struct Constraint {
     name: String,
     data_type: String,
-    nullable: bool,
-    unique: bool,
+    nullable: Result<bool, PolarsError>,
+    unique: Result<bool, PolarsError>,
     min_length: Option<u32>,
     max_length: Option<u32>,
     min_value: Option<f32>,
@@ -43,27 +43,64 @@ impl Constraint {
         }
     }
 
+    fn _is_nullable(data: &DataFrame, colname: &str) -> Result<bool, PolarsError> {
+        let col = data.column(&colname)?;
+        let is_null = col.is_null().any();
+        Ok(is_null)
+    }
+
+    fn _is_unique(data: &DataFrame, colname: &str) -> Result<bool, PolarsError> {
+        let col = data.column(&colname)?;
+        let is_null = col.is_unique()?.all();
+        Ok(is_null)
+    }
+
+    fn _get_min_length(data: &DataFrame, colname: &str) -> Option<u32> {
+        let col = data.column(&colname).ok();
+        let min_length = col?.utf8().map(|s| s.str_lengths().min());
+        match min_length {
+            Ok(s) => s,
+            Err(_) => None,
+        }
+    }
+
+    fn _get_max_length(data: &DataFrame, colname: &str) -> Option<u32> {
+        let col = data.column(&colname).ok();
+        let min_length = col?.utf8().map(|s| s.str_lengths().max());
+        match min_length {
+            Ok(s) => s,
+            Err(_) => None,
+        }
+    }
+
+    fn _get_min_value(data: &DataFrame, colname: &str) -> Option<f32> {
+        let col = data.column(&colname);
+        let min_value = match col {
+            Ok(s) => s.min(),
+            Err(_) => None,
+        };
+        min_value
+    }
+
+    fn _get_max_value(data: &DataFrame, colname: &str) -> Option<f32> {
+        let col = data.column(&colname);
+        let min_value = match col {
+            Ok(s) => s.max(),
+            Err(_) => None,
+        };
+        min_value
+    }
+
     fn get_col_constraints(data: &DataFrame, colname: &str) -> Constraint {
         let attribute_contraints = Constraint {
             name: String::from(colname),
             data_type: Self::_get_data_type(data, colname),
-            // data_type: data.column(&colname).unwrap().dtype().to_string(),
-            nullable: data.column(&colname).unwrap().is_null().any(),
-            unique: data.column(&colname).unwrap().is_unique().unwrap().all(),
-            min_length: data
-                .column(&colname)
-                .unwrap()
-                .utf8()
-                .map(|s| s.str_lengths().min())
-                .unwrap_or(None),
-            max_length: data
-                .column(&colname)
-                .unwrap()
-                .utf8()
-                .map(|s| s.str_lengths().min())
-                .unwrap_or(None),
-            min_value: data.column(&colname).unwrap().min(),
-            max_value: data.column(&colname).unwrap().max(),
+            nullable: Self::_is_nullable(data, colname),
+            unique: Self::_is_unique(data, colname),
+            min_length: Self::_get_min_length(data, colname),
+            max_length: Self::_get_max_length(data, colname),
+            min_value: Self::_get_min_value(data, colname),
+            max_value: Self::_get_max_value(data, colname),
             value_range: Self::_get_string_unique(data, &colname),
         };
         attribute_contraints
@@ -77,9 +114,9 @@ impl fmt::Display for Constraint {
             "
         Name: {}
         Data Type: {}
-        Nullable: {}
-        Unique: {}
-        Min Length: {:?}
+        Nullable: {:?}
+        Unique: {:?}
+        Mix Length: {:?}
         Max Length: {:?}
         Min Value: {:?}
         Max Value: {:?}
@@ -98,7 +135,7 @@ impl fmt::Display for Constraint {
     }
 }
 
-pub fn frame_constraints(data: &DataFrame) {
+pub fn frame_constraints(data: &DataFrame) -> PolarsResult<DataFrame> {
     let columns: Vec<&str> = data.get_column_names();
 
     let mut name: Vec<String> = vec![];
@@ -115,8 +152,8 @@ pub fn frame_constraints(data: &DataFrame) {
         let c = Constraint::get_col_constraints(data, col);
         name.push(c.name);
         dtype.push(c.data_type);
-        nullable.push(c.nullable);
-        unique.push(c.unique);
+        nullable.push(c.nullable?);
+        unique.push(c.unique?);
         min_length.push(c.min_length);
         max_length.push(c.max_length);
         min_value.push(c.min_value);
@@ -130,10 +167,11 @@ pub fn frame_constraints(data: &DataFrame) {
         "Nullable" => &nullable,
         "Unique" => &unique,
         "Min Length" => &min_length,
-        "Max Length" => &min_length,
+        "Max Length" => &max_length,
         "Min Value" => &min_value,
         "Max Value" => &max_value,
         "Value Range" => &value_range
     ];
-    println!("{:?}", frame.unwrap());
+    println!("{:?}", frame);
+    frame
 }

@@ -325,7 +325,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dv-rs"
+name = "dvrs"
 version = "0.1.0"
 dependencies = [
  "polars",

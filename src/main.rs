@@ -1,9 +1,10 @@
+use dvrs::frame_constraints;
 use polars::prelude::*;
-use dv-rs::frame_constraints;
 
 fn main() {
-    let file: &str = "brain.csv";
+    let file: &str = "test_data/brain_stroke.csv";
     let df: DataFrame = CsvReader::from_path(file).unwrap().finish().unwrap();
 
-    frame_constraints(&df)
+    let x = frame_constraints(&df);
+    println!("{:?}", x)
 }
