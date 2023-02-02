@@ -10,11 +10,11 @@ pub struct Constraint {
     max_length: Option<u32>,
     min_value: Option<f32>,
     max_value: Option<f32>,
-    value_range: Option<Series>,
+    value_range: Option<String>,
 }
 
 impl Constraint {
-    fn _get_string_unique(data: &DataFrame, colname: &str) -> Option<Series> {
+    fn _get_string_unique(data: &DataFrame, colname: &str) -> Option<String> {
         let col = data.column(&colname);
         let dtype: String = match col {
             Ok(s) => s.dtype().to_string(),
@@ -29,7 +29,7 @@ impl Constraint {
                 Err(e) => Err(e),
             };
             match unique {
-                Ok(u) => Some(u),
+                Ok(u) => Some(String::from_iter(u.iter().map(|x| x.to_string()))),
                 Err(_) => None,
             }
         }
@@ -146,7 +146,7 @@ pub fn frame_constraints(data: &DataFrame) -> PolarsResult<DataFrame> {
     let mut max_length: Vec<Option<u32>> = vec![];
     let mut min_value: Vec<Option<f32>> = vec![];
     let mut max_value: Vec<Option<f32>> = vec![];
-    let mut value_range: Vec<Option<Series>> = vec![];
+    let mut value_range: Vec<Option<String>> = vec![];
 
     for col in columns {
         let c = Constraint::get_col_constraints(data, col);
