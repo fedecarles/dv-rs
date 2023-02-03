@@ -1,4 +1,5 @@
 use polars::prelude::*;
+use std::collections::HashSet;
 use std::fmt;
 
 pub struct Constraint {
@@ -14,8 +15,9 @@ pub struct Constraint {
 }
 
 impl Constraint {
-    fn _get_string_unique(data: &DataFrame, colname: &str) -> Option<String> {
+    fn _get_value_range(data: &DataFrame, colname: &str) -> Option<String> {
         let col = data.column(&colname);
+
         let dtype: String = match col {
             Ok(s) => s.dtype().to_string(),
             Err(_) => String::from("Not a DataFrame"),
@@ -24,14 +26,14 @@ impl Constraint {
         if dtype != "str" {
             return None;
         } else {
-            let unique = match col {
-                Ok(s) => s.unique(),
-                Err(e) => Err(e),
-            };
-            match unique {
-                Ok(u) => Some(String::from_iter(u.iter().map(|x| x.to_string()))),
-                Err(_) => None,
+            let mut unique_values = HashSet::new();
+            let series = col.cloned().unwrap_or_default();
+            for value in series.iter() {
+                unique_values.insert(value.to_string());
             }
+            let unique_vec = unique_values.into_iter().collect::<Vec<String>>();
+            let unique_str = Some(unique_vec.join(", "));
+            unique_str
         }
     }
 
@@ -101,7 +103,7 @@ impl Constraint {
             max_length: Self::_get_max_length(data, colname),
             min_value: Self::_get_min_value(data, colname),
             max_value: Self::_get_max_value(data, colname),
-            value_range: Self::_get_string_unique(data, &colname),
+            value_range: Self::_get_value_range(data, &colname),
         };
         attribute_contraints
     }
