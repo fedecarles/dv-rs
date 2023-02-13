@@ -6,4 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-polars = {version="0.26.1", features=["describe", "lazy", "csv-file", "strings"]}
+polars = {version="0.26.1", features=["describe", "lazy", "csv-file", "strings", "is_in"]}
+cli-table = {version="0.4"}
+clap = {version="4.1.4"}

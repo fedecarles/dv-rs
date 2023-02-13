@@ -1,4 +1,5 @@
 pub mod constraints {
+    use cli_table::{Cell, Style, Table};
     use polars::prelude::*;
     use std::collections::HashSet;
     use std::fmt;
@@ -6,8 +7,8 @@ pub mod constraints {
     pub struct Constraint {
         pub name: String,
         pub data_type: String,
-        pub nullable: Result<bool, PolarsError>,
-        pub unique: Result<bool, PolarsError>,
+        pub nullable: bool,
+        pub unique: bool,
         pub min_length: Option<u32>,
         pub max_length: Option<u32>,
         pub min_value: Option<f32>,
@@ -21,7 +22,7 @@ pub mod constraints {
 
             let dtype: String = match col {
                 Ok(s) => s.dtype().to_string(),
-                Err(_) => String::from("Not a DataFrame"),
+                Err(_) => String::from("Not a DataType"),
             };
 
             if dtype != "str" {
@@ -33,7 +34,7 @@ pub mod constraints {
                     unique_values.insert(value.to_string());
                 }
                 let unique_vec = unique_values.into_iter().collect::<Vec<String>>();
-                let unique_str = Some(unique_vec.join(", "));
+                let unique_str = Some(unique_vec.join(", ").replace(['\\', '"'], ""));
                 unique_str
             }
         }
@@ -46,16 +47,22 @@ pub mod constraints {
             }
         }
 
-        fn _is_nullable(data: &DataFrame, colname: &str) -> Result<bool, PolarsError> {
-            let col = data.column(&colname)?;
-            let is_null = col.is_null().any();
-            Ok(is_null)
+        fn _is_nullable(data: &DataFrame, colname: &str) -> bool {
+            let col = data.column(&colname);
+            let is_null = match col {
+                Ok(s) => s.is_null().any(),
+                Err(_) => false,
+            };
+            is_null
         }
 
-        fn _is_unique(data: &DataFrame, colname: &str) -> Result<bool, PolarsError> {
-            let col = data.column(&colname)?;
-            let is_null = col.is_unique()?.all();
-            Ok(is_null)
+        fn _is_unique(data: &DataFrame, colname: &str) -> bool {
+            let col = data.column(&colname);
+            let is_unique = match col {
+                Ok(s) => s.is_unique().unwrap_or_default().all(),
+                Err(_) => false,
+            };
+            is_unique
         }
 
         fn _get_min_length(data: &DataFrame, colname: &str) -> Option<u32> {
@@ -112,30 +119,51 @@ pub mod constraints {
 
     impl fmt::Display for Constraint {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(
-                f,
-                "
-                Name: {}
-                Data Type: {}
-                Nullable: {:?}
-                Unique: {:?}
-                Mix Length: {:?}
-                Max Length: {:?}
-                Min Value: {:?}
-                Max Value: {:?}
-                Value Range: {:?}
-            ",
-                self.name,
-                self.data_type,
-                self.nullable,
-                self.unique,
-                self.min_length,
-                self.max_length,
-                self.min_value,
-                self.max_value,
-                self.value_range
-            )
+            let table = vec![
+                vec!["Name".cell(), self.name.as_str().cell()],
+                vec!["Data Type".cell(), self.data_type.as_str().cell()],
+                vec!["Duplicated".cell(), self.unique.cell()],
+                vec![
+                    "Min Lenght".cell(),
+                    self.min_length.unwrap_or_default().cell(),
+                ],
+                vec![
+                    "Max Lenght".cell(),
+                    self.max_length.unwrap_or_default().cell(),
+                ],
+                vec![
+                    "Min Value".cell(),
+                    self.min_value.unwrap_or_default().cell(),
+                ],
+                vec![
+                    "Max Value".cell(),
+                    self.max_value.unwrap_or_default().cell(),
+                ],
+                vec![
+                    "Value Range".cell(),
+                    self.value_range.clone().unwrap_or_default().cell(),
+                ],
+            ]
+            .table()
+            .title(vec![
+                "Constraint Type".cell().bold(true),
+                "Constraint Value".cell().bold(true),
+            ])
+            .bold(true);
+
+            let table_display = table.display().unwrap();
+            write!(f, "{}", table_display)
         }
+    }
+
+    pub fn get_constraint_set(data: &DataFrame) -> Vec<Constraint> {
+        let columns: Vec<&str> = data.get_column_names();
+        let mut constraint_set: Vec<Constraint> = vec![];
+        for col in columns {
+            let constraint = Constraint::get_col_constraints(&data, &col);
+            constraint_set.push(constraint)
+        }
+        constraint_set
     }
 
     pub fn frame_constraints(data: &DataFrame) -> PolarsResult<DataFrame> {
@@ -155,8 +183,8 @@ pub mod constraints {
             let c = Constraint::get_col_constraints(data, col);
             name.push(c.name);
             dtype.push(c.data_type);
-            nullable.push(c.nullable?);
-            unique.push(c.unique?);
+            nullable.push(c.nullable);
+            unique.push(c.unique);
             min_length.push(c.min_length);
             max_length.push(c.max_length);
             min_value.push(c.min_value);

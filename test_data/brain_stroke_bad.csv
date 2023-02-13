@@ -2,19 +2,19 @@ gender,age,hypertension,heart_disease,ever_married,work_type,Residence_type,avg_
 Male,67.00,0.00,1.00,Yes,Private,Urban,228.69,36.60,formerly smoked
 Male,80.00,0.00,1.00,Yes,Private,Rural,105.92,32.50,never smoked
 Female,,0.00,0.00,Yes,Private,Urban,171.23,34.40,smokes
-Female,79.00,1.00,0.00,Yes,Self-employed,Rural,174.12,24.00,never smoked
-Male,81.00,0.00,0.00,Yes,Private,Rural,-25.00,,formerly smoked
-Male,74.00,1.00,1.00,Yes,Private,Rural,70.09,27.40,never smoked
+Female,79.00,1.00,0.00,Yes,Self-employed,Rurali,174.12,24.00,never smoked
+Male,81.00,0.00,0.00,Yes,Private,Rurali,-25.00,,formerly smoked
+M,74.00,1.00,1.00,Yes,Private,Rural,70.09,27.40,never smoked
 Female,69.00,0.00,0.00,No,Private,Urban,94.39,22.80,bad_category
-Female,78.00,0.00,0.00,Yes,,Rural,58.57,0.00,Unknown
+Female,78.00,0.00,0.00,Yes,bad_category,,58.57,0.00,Unknown
 Female,81.00,1.00,0.00,Yes,Private,Rural,700.00,29.70,never smoked
 Female,,0.00,1.00,Yes,Govt_job,Rural,120.46,36.80,bad_category
 Female,54.00,0.00,0.00,Yes,Private,Urban,104.51,100.00,smokes
-Female,79.00,2.00,1.00,Yes,,Urban,214.09,28.20,never smoked
+Female,79.00,2.00,1.00,Yes,bad_category,Urban,214.09,28.20,never smoked
 Female,50.00,1.00,0.00,Yes,Self-employed,Rural,167.41,30.90,never smoked
 Male,,0.00,1.00,Yes,Private,Urban,191.61,37.50,smokes
 Male,75.00,1.00,0.00,Yes,Private,Urban,221.29,25.80,smokes
-Female,60.00,0.00,0.00,No,,Urban,89.22,37.80,never smoked
+Female,60.00,0.00,0.00,No,bad_category,Urban,89.22,37.80,never smoked
 Female,,0.00,0.00,Yes,Govt_job,Rural,193.94,22.40,smokes
 Female,52.00,1.00,0.00,Yes,Self-employed,Urban,233.29,48.90,never smoked
 Female,79.00,0.00,0.00,Yes,Self-employed,Urban,228.70,26.60,never smoked
