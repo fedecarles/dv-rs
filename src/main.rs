@@ -1,35 +1,50 @@
 mod constraints;
 mod validation;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{arg, Command};
 use constraints::constraints::*;
 use polars::prelude::*;
-use std::env;
 use validation::validation::*;
 
 fn main() {
+    let matches = Command::new("dvrs")
+        .version("0.1.0")
+        .author("Federico Carlés. <federico.carles@pm.me>")
+        .about("Data validation for Polars DataFrame")
+        .arg(arg!(--constraint <VALUE>).short('c').required(true))
+        .arg(arg!(--validate <VALUE>).required(false))
+        .get_matches();
 
-    //let file: &str = "test_data/brain_stroke.csv";
-    //let df: DataFrame = CsvReader::from_path(file).unwrap().finish().unwrap();
+    let constraint_path = matches
+        .get_one::<String>("constraint")
+        .expect("Constraint is required");
 
-    //let bad_file: &str = "test_data/brain_stroke_bad.csv";
-    //let bad_df: DataFrame = CsvReader::from_path(bad_file).unwrap().finish().unwrap();
+    let validate_path = matches
+        .get_one::<String>("validate")
+        .expect("Validate is required");
 
-    ////let x = frame_constraints(&df);
-    ////println!("{:?}", x)
+    let constraint_df: DataFrame = CsvReader::from_path(&constraint_path)
+        .unwrap()
+        .finish()
+        .unwrap();
 
-    ////let c = Constraint::get_col_constraints(&df, "gender");
-    ////println!("{}", &c);
-    ////let y = Validation::check_nullable(&df, c);
-    ////let y = Validation::check_duplicates(&df, "gender", c.unique.unwrap());
-    ////let y = Validation::check_min_length(&df, c);
-    ////let y = Validation::check_max_value(&df, c);
-    ////let y = Validation::check_value_range(&bad_df, c);
-    ////println!("{:?}", &c.value_range);
+    let validate_df: DataFrame = CsvReader::from_path(&validate_path)
+        .unwrap()
+        .finish()
+        .unwrap();
 
-    ////let y = Validation::get_col_validations(&bad_df, &c);
+    //let x = frame_constraints(&constraint_df);
+    //println!("{:?}", x);
 
-    //let cons = get_constraint_set(&df);
+    let mut cons = ConstraintSet::new(&constraint_df);
+    cons.modify("age", "nullable", "true");
+    cons.modify("gnder", "max_length", "5");
+    cons.modify("Residence_type", "alue_range", "Rural,Urban, Semi");
 
-    //let x = frame_validation(&bad_df, &cons);
-    //println!("{:?}", x.unwrap())
+    println!("{:?}", cons)
+    //ConstraintSet::save_json(&constraint_df);
+    //let y = frame_validation(&validate_df, &cons);
+    //println!("{:?}", y.unwrap())
+
+    //let json = serde_json::to_string(&cons);
+    //println!("{:?}", json);
 }

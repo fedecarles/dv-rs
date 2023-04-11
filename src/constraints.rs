@@ -1,9 +1,13 @@
 pub mod constraints {
     use cli_table::{Cell, Style, Table};
     use polars::prelude::*;
+    use serde::{Deserialize, Serialize};
+    use serde_json::{Result, Value};
     use std::collections::HashSet;
     use std::fmt;
+    use std::str::FromStr;
 
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
         pub name: String,
         pub data_type: String,
@@ -101,7 +105,7 @@ pub mod constraints {
             min_value
         }
 
-        pub fn get_col_constraints(data: &DataFrame, colname: &str) -> Constraint {
+        pub fn new(data: &DataFrame, colname: &str) -> Constraint {
             let attribute_contraints = Constraint {
                 name: String::from(colname),
                 data_type: Self::_get_data_type(data, colname),
@@ -156,54 +160,88 @@ pub mod constraints {
         }
     }
 
-    pub fn get_constraint_set(data: &DataFrame) -> Vec<Constraint> {
-        let columns: Vec<&str> = data.get_column_names();
-        let mut constraint_set: Vec<Constraint> = vec![];
-        for col in columns {
-            let constraint = Constraint::get_col_constraints(&data, &col);
-            constraint_set.push(constraint)
-        }
-        constraint_set
+    #[derive(Serialize, Deserialize, Debug)]
+    pub struct ConstraintSet {
+        pub name: String,
+        pub set: Vec<Constraint>,
     }
 
-    pub fn frame_constraints(data: &DataFrame) -> PolarsResult<DataFrame> {
-        let columns: Vec<&str> = data.get_column_names();
-
-        let mut name: Vec<String> = vec![];
-        let mut dtype: Vec<String> = vec![];
-        let mut nullable: Vec<bool> = vec![];
-        let mut unique: Vec<bool> = vec![];
-        let mut min_length: Vec<Option<u32>> = vec![];
-        let mut max_length: Vec<Option<u32>> = vec![];
-        let mut min_value: Vec<Option<f32>> = vec![];
-        let mut max_value: Vec<Option<f32>> = vec![];
-        let mut value_range: Vec<Option<String>> = vec![];
-
-        for col in columns {
-            let c = Constraint::get_col_constraints(data, col);
-            name.push(c.name);
-            dtype.push(c.data_type);
-            nullable.push(c.nullable);
-            unique.push(c.unique);
-            min_length.push(c.min_length);
-            max_length.push(c.max_length);
-            min_value.push(c.min_value);
-            max_value.push(c.max_value);
-            value_range.push(c.value_range);
+    impl ConstraintSet {
+        pub fn new(data: &DataFrame) -> ConstraintSet {
+            let columns: Vec<&str> = data.get_column_names();
+            let mut constraint_set: Vec<Constraint> = vec![];
+            for col in columns {
+                let constraint = Constraint::new(&data, &col);
+                constraint_set.push(constraint)
+            }
+            ConstraintSet {
+                name: String::from("XXX"),
+                set: constraint_set,
+            }
         }
 
-        let frame: PolarsResult<DataFrame> = df![
-            "Attribute" => &name,
-            "Data Type" => &dtype,
-            "Nullable" => &nullable,
-            "Unique" => &unique,
-            "Min Length" => &min_length,
-            "Max Length" => &max_length,
-            "Min Value" => &min_value,
-            "Max Value" => &max_value,
-            "Value Range" => &value_range
-        ];
-        println!("{:?}", frame);
-        frame
+        pub fn modify(&mut self, name: &str, ctype: &str, value: &str) -> () {
+            if let Some(constraint) = self.set.iter_mut().find(|c| c.name == name) {
+                match ctype {
+                    "data_type" => constraint.data_type = String::from(value),
+                    "nullable" => constraint.nullable = bool::from_str(value).unwrap_or_default(),
+                    "unique" => constraint.unique = bool::from_str(value).unwrap_or_default(),
+                    "min_length" => constraint.min_length = u32::from_str(value).ok(),
+                    "max_length" => constraint.max_length = u32::from_str(value).ok(),
+                    "min_value" => constraint.min_value = f32::from_str(value).ok(),
+                    "max_value" => constraint.max_value = f32::from_str(value).ok(),
+                    "value_range" => constraint.value_range = String::from(value).into(),
+                    _ => println!("{:?}", "Please provide a valid constraint name."),
+                }
+                println!("{:?}", "Constraint updated");
+                println!("{:?}", constraint)
+            } else {
+                println!("{:?}", "Please provide a valid column name.")
+            }
+        }
+
+        pub fn save_json(&self) -> Result<String> {
+            serde_json::to_string(self)
+        }
+
+        pub fn frame_constraints(data: &DataFrame) -> PolarsResult<DataFrame> {
+            let columns: Vec<&str> = data.get_column_names();
+
+            let mut name: Vec<String> = vec![];
+            let mut dtype: Vec<String> = vec![];
+            let mut nullable: Vec<bool> = vec![];
+            let mut unique: Vec<bool> = vec![];
+            let mut min_length: Vec<Option<u32>> = vec![];
+            let mut max_length: Vec<Option<u32>> = vec![];
+            let mut min_value: Vec<Option<f32>> = vec![];
+            let mut max_value: Vec<Option<f32>> = vec![];
+            let mut value_range: Vec<Option<String>> = vec![];
+
+            for col in columns {
+                let c = Constraint::new(data, col);
+                name.push(c.name);
+                dtype.push(c.data_type);
+                nullable.push(c.nullable);
+                unique.push(c.unique);
+                min_length.push(c.min_length);
+                max_length.push(c.max_length);
+                min_value.push(c.min_value);
+                max_value.push(c.max_value);
+                value_range.push(c.value_range);
+            }
+
+            let frame: PolarsResult<DataFrame> = df![
+                "Attribute" => &name,
+                "Data Type" => &dtype,
+                "Nullable" => &nullable,
+                "Unique" => &unique,
+                "Min Length" => &min_length,
+                "Max Length" => &max_length,
+                "Min Value" => &min_value,
+                "Max Value" => &max_value,
+                "Value Range" => &value_range
+            ];
+            frame
+        }
     }
 }
