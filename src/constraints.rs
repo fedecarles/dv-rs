@@ -1,16 +1,29 @@
 pub mod constraints {
     use cli_table::{Cell, Style, Table};
     use polars::prelude::*;
+    use serde::__private::ser::constrain;
     use serde::{Deserialize, Serialize};
     use serde_json::{Result, Value};
     use std::collections::HashSet;
     use std::fmt;
     use std::str::FromStr;
 
+    // TODO
+    //enum ConstraintType {
+    //    DataType(String),
+    //    Nullable(bool),
+    //    Unique(bool),
+    //    MinLength(Option<u32>),
+    //    MaxLength(Option<u32>),
+    //    MinValue(Option<f32>),
+    //    MaxValue(Option<f32>),
+    //    ValueRange(String),
+    //}
+
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
         pub name: String,
-        pub data_type: String,
+        pub data_type: String, // TODO this can be enum
         pub nullable: bool,
         pub unique: bool,
         pub min_length: Option<u32>,
@@ -22,7 +35,7 @@ pub mod constraints {
 
     impl Constraint {
         fn _get_value_range(data: &DataFrame, colname: &str) -> Option<String> {
-            let col = data.column(&colname);
+            let col = data.column(colname);
 
             let dtype: String = match col {
                 Ok(s) => s.dtype().to_string(),
@@ -44,65 +57,41 @@ pub mod constraints {
         }
 
         fn _get_data_type(data: &DataFrame, colname: &str) -> String {
-            let col = data.column(&colname);
-            match col {
-                Ok(s) => s.dtype().to_string(),
-                Err(_) => String::from("Not a DataFrame"),
-            }
+            data.column(colname)
+                .map(|s| s.dtype().to_string())
+                .unwrap_or_default()
         }
 
         fn _is_nullable(data: &DataFrame, colname: &str) -> bool {
-            let col = data.column(&colname);
-            let is_null = match col {
-                Ok(s) => s.is_null().any(),
-                Err(_) => false,
-            };
-            is_null
+            data.column(colname)
+                .map(|s| s.is_null().any())
+                .unwrap_or_default()
         }
 
         fn _is_unique(data: &DataFrame, colname: &str) -> bool {
-            let col = data.column(&colname);
-            let is_unique = match col {
-                Ok(s) => s.is_unique().unwrap_or_default().all(),
-                Err(_) => false,
-            };
-            is_unique
+            data.column(colname)
+                .map(|s| s.is_unique().unwrap_or_default().all())
+                .unwrap_or_default()
         }
 
         fn _get_min_length(data: &DataFrame, colname: &str) -> Option<u32> {
-            let col = data.column(&colname).ok();
-            let min_length = col?.utf8().map(|s| s.str_lengths().min());
-            match min_length {
-                Ok(s) => s,
-                Err(_) => None,
-            }
+            data.column(colname)
+                .ok()
+                .and_then(|s| s.utf8().map(|s| s.str_lengths().min()).unwrap_or_default())
         }
 
         fn _get_max_length(data: &DataFrame, colname: &str) -> Option<u32> {
-            let col = data.column(&colname).ok();
-            let min_length = col?.utf8().map(|s| s.str_lengths().max());
-            match min_length {
-                Ok(s) => s,
-                Err(_) => None,
-            }
+            data.column(colname)
+                .ok()
+                .and_then(|s| s.utf8().map(|s| s.str_lengths().max()).unwrap_or_default())
         }
 
         fn _get_min_value(data: &DataFrame, colname: &str) -> Option<f32> {
-            let col = data.column(&colname);
-            let min_value = match col {
-                Ok(s) => s.min(),
-                Err(_) => None,
-            };
-            min_value
+            data.column(colname).ok().and_then(|s| s.min())
         }
 
         fn _get_max_value(data: &DataFrame, colname: &str) -> Option<f32> {
-            let col = data.column(&colname);
-            let min_value = match col {
-                Ok(s) => s.max(),
-                Err(_) => None,
-            };
-            min_value
+            data.column(colname).ok().and_then(|s| s.max())
         }
 
         pub fn new(data: &DataFrame, colname: &str) -> Constraint {
@@ -193,8 +182,7 @@ pub mod constraints {
                     "value_range" => constraint.value_range = String::from(value).into(),
                     _ => println!("{:?}", "Please provide a valid constraint name."),
                 }
-                println!("{:?}", "Constraint updated");
-                println!("{:?}", constraint)
+                println!("Constraint updated:\n {:?}", constraint)
             } else {
                 println!("{:?}", "Please provide a valid column name.")
             }
