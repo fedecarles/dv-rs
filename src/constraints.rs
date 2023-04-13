@@ -1,6 +1,7 @@
 pub mod constraints {
     use cli_table::{Cell, Style, Table};
     use polars::prelude::*;
+    use polars::prelude::*;
     use serde::__private::ser::constrain;
     use serde::{Deserialize, Serialize};
     use serde_json::{Result, Value};
@@ -8,22 +9,32 @@ pub mod constraints {
     use std::fmt;
     use std::str::FromStr;
 
-    // TODO
-    //enum ConstraintType {
-    //    DataType(String),
-    //    Nullable(bool),
-    //    Unique(bool),
-    //    MinLength(Option<u32>),
-    //    MaxLength(Option<u32>),
-    //    MinValue(Option<f32>),
-    //    MaxValue(Option<f32>),
-    //    ValueRange(String),
+    //#[derive(Serialize, Deserialize, Debug)]
+    //enum DataType {
+    //    Null,
+    //    Boolean,
+    //    UInt8,
+    //    UInt16,
+    //    UInt32,
+    //    UInt64,
+    //    Int8,
+    //    Int16,
+    //    Int32,
+    //    Int64,
+    //    Float32,
+    //    Float64,
+    //    Utf8,
+    //    LargeUtf8,
+    //    Date32,
+    //    Date64,
+    //    Categorical,
     //}
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
         pub name: String,
-        pub data_type: String, // TODO this can be enum
+        #[serde(skip_deserializing, skip_serializing)]
+        pub data_type: DataType, // TODO this can be enum
         pub nullable: bool,
         pub unique: bool,
         pub min_length: Option<u32>,
@@ -56,10 +67,11 @@ pub mod constraints {
             }
         }
 
-        fn _get_data_type(data: &DataFrame, colname: &str) -> String {
+        fn _get_data_type(data: &DataFrame, colname: &str) -> DataType {
             data.column(colname)
-                .map(|s| s.dtype().to_string())
-                .unwrap_or_default()
+                .map(|s| s.dtype())
+                .unwrap_or(&DataType::Null)
+                .clone()
         }
 
         fn _is_nullable(data: &DataFrame, colname: &str) -> bool {
@@ -114,7 +126,7 @@ pub mod constraints {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             let table = vec![
                 vec!["Name".cell(), self.name.as_str().cell()],
-                vec!["Data Type".cell(), self.data_type.as_str().cell()],
+                vec!["Data Type".cell(), self.data_type.to_string().cell()],
                 vec!["Duplicated".cell(), self.unique.cell()],
                 vec![
                     "Min Lenght".cell(),
@@ -172,7 +184,7 @@ pub mod constraints {
         pub fn modify(&mut self, name: &str, ctype: &str, value: &str) -> () {
             if let Some(constraint) = self.set.iter_mut().find(|c| c.name == name) {
                 match ctype {
-                    "data_type" => constraint.data_type = String::from(value),
+                    //"data_type" => constraint.data_type = String::from(value),
                     "nullable" => constraint.nullable = bool::from_str(value).unwrap_or_default(),
                     "unique" => constraint.unique = bool::from_str(value).unwrap_or_default(),
                     "min_length" => constraint.min_length = u32::from_str(value).ok(),
@@ -208,7 +220,7 @@ pub mod constraints {
             for col in columns {
                 let c = Constraint::new(data, col);
                 name.push(c.name);
-                dtype.push(c.data_type);
+                //dtype.push(c.data_type);
                 nullable.push(c.nullable);
                 unique.push(c.unique);
                 min_length.push(c.min_length);

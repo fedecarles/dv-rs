@@ -19,9 +19,9 @@ pub mod validation {
     impl Validation {
         fn _check_data_type(data: &DataFrame, constraint: &Constraint) -> Option<bool> {
             let col = data.column(&constraint.name);
-            let dtype: String = match col {
-                Ok(s) => s.dtype().to_string(),
-                Err(_) => String::from("Not a DataType"),
+            let dtype: DataType = match col {
+                Ok(s) => s.dtype().clone(),
+                Err(_) => DataType::Null,
             };
             if dtype == constraint.data_type {
                 Some(true)
