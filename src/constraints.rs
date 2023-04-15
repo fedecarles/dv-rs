@@ -1,11 +1,7 @@
 pub mod constraints {
-    use cli_table::{Cell, Style, Table};
     use polars::export::num::ToPrimitive;
     use polars::prelude::*;
-    use polars::prelude::*;
-    use serde::__private::ser::constrain;
     use serde::{Deserialize, Serialize};
-    use serde_json::{Value};
     use std::collections::HashSet;
     use std::fmt;
     use std::str::FromStr;
@@ -135,7 +131,7 @@ pub mod constraints {
             write!(f, "+{:<}+\n", "-".repeat(name_length + 178)).unwrap_or_default();
             write!(
                 f,
-                "|{:<width1$}\t| {:<width2$}\t| {:<width3$}\t| {:<width4$}\t| {:<width5$}\t| {:<width6$}\t| {:<width7$}\t| {:<width8$}\t| {:<width9$}|\n",
+                "|{:<width1$}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<60}|\n",
                 self.name,
                 self.data_type.to_string(),
                 self.nullable,
@@ -146,14 +142,6 @@ pub mod constraints {
                 self.max_value.unwrap_or_default(),
                 trimmed_range, 
                 width1 = name_length,
-                width2 = 10,
-                width3 = 10,
-                width4 = 10,
-                width5 = 10,
-                width6 = 10,
-                width7 = 10,
-                width8 = 10,
-                width9 = 60
                 ).unwrap_or_default();
             write!(f, "+{:<}+\n", "-".repeat(name_length + 178))
         }
