@@ -38,6 +38,7 @@ fn main() {
     let mut cons = ConstraintSet::new(&constraint_df);
     println!("{}", cons);
     cons.modify("age", "nullable", "true");
+    cons.save_json("test_data/test.json");
     //cons.modify("gnder", "max_length", "5");
     //cons.modify("Residence_type", "alue_range", "Rural,Urban, Semi");
     //cons.modify("age", "data_type", "str");

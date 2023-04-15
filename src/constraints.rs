@@ -5,10 +5,14 @@ pub mod constraints {
     use polars::prelude::*;
     use serde::__private::ser::constrain;
     use serde::{Deserialize, Serialize};
-    use serde_json::{Result, Value};
+    use serde_json::{Value};
     use std::collections::HashSet;
     use std::fmt;
     use std::str::FromStr;
+    use std::fs::File;
+    use std::io::Write;
+    use std::path::Path;
+
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
@@ -201,8 +205,15 @@ pub mod constraints {
             }
         }
 
-        pub fn save_json(&self) -> Result<String> {
-            serde_json::to_string(self)
+        pub fn save_json(&self, filepath: &str) -> Result<(), String> {
+
+            let json = serde_json::to_string_pretty(self).map_err(|err| err.to_string())?;
+
+            let path = Path::new(filepath);
+            let mut file = File::create(&path).map_err(|err| err.to_string())?;
+            file.write_all(json.as_bytes()).map_err(|err| err.to_string())?;
+
+            Ok(())
         }
     }
 
@@ -217,7 +228,7 @@ pub mod constraints {
             write!(f, "+{:<}+\n", "-".repeat(max_length + 176)).unwrap_or_default();
             write!(
                 f,
-                "|{:<width1$}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<width2$}|\n",
+                "|{:<width1$}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<56}|\n",
                 "Name",
                 "Data Type",
                 "Nullable",
@@ -228,7 +239,6 @@ pub mod constraints {
                 "Max Value",
                 "Value Range",
                 width1 = max_length,
-                width2 = 58
             )
             .unwrap_or_default();
             write!(f, "+{:<}+\n", "-".repeat(max_length + 176)).unwrap_or_default();
@@ -238,15 +248,14 @@ pub mod constraints {
                     .clone()
                     .unwrap_or_default()
                     .to_string();
-
                 let trimmed_range = if range_string.len() >= 60 {
-                    &range_string[..57]
+                    &range_string[..55]
                 } else {
                     &range_string
                 };
                 write!(
                     f,
-                    "|{:<width1$}\t| {:<width2$}\t| {:<width3$}\t| {:<width4$}\t| {:<width5$}\t| {:<width6$}\t| {:<width7$}\t| {:<width8$}\t| {:<width9$}|\n",
+                    "|{:<width1$}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<56}|\n",
                     constraint.name,
                     constraint.data_type.to_string(),
                     constraint.nullable,
@@ -257,14 +266,6 @@ pub mod constraints {
                     constraint.max_value.unwrap_or_default(),
                     trimmed_range,
                     width1 = max_length,
-                    width2 = 10,
-                    width3 = 10,
-                    width4 = 10,
-                    width5 = 10,
-                    width6 = 10,
-                    width7 = 10,
-                    width8 = 10,
-                    width9 = 58
                 ).unwrap_or_default();
                 write!(f, "+{:<}+\n", "-".repeat(max_length + 176)).unwrap_or_default();
             }
