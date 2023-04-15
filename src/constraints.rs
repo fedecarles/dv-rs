@@ -1,5 +1,6 @@
 pub mod constraints {
     use cli_table::{Cell, Style, Table};
+    use polars::export::num::ToPrimitive;
     use polars::prelude::*;
     use polars::prelude::*;
     use serde::__private::ser::constrain;
@@ -9,32 +10,11 @@ pub mod constraints {
     use std::fmt;
     use std::str::FromStr;
 
-    //#[derive(Serialize, Deserialize, Debug)]
-    //enum DataType {
-    //    Null,
-    //    Boolean,
-    //    UInt8,
-    //    UInt16,
-    //    UInt32,
-    //    UInt64,
-    //    Int8,
-    //    Int16,
-    //    Int32,
-    //    Int64,
-    //    Float32,
-    //    Float64,
-    //    Utf8,
-    //    LargeUtf8,
-    //    Date32,
-    //    Date64,
-    //    Categorical,
-    //}
-
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
         pub name: String,
         #[serde(skip_deserializing, skip_serializing)]
-        pub data_type: DataType, // TODO this can be enum
+        pub data_type: DataType,
         pub nullable: bool,
         pub unique: bool,
         pub min_length: Option<u32>,
@@ -123,41 +103,55 @@ pub mod constraints {
     }
 
     impl fmt::Display for Constraint {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let table = vec![
-                vec!["Name".cell(), self.name.as_str().cell()],
-                vec!["Data Type".cell(), self.data_type.to_string().cell()],
-                vec!["Duplicated".cell(), self.unique.cell()],
-                vec![
-                    "Min Lenght".cell(),
-                    self.min_length.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Max Lenght".cell(),
-                    self.max_length.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Min Value".cell(),
-                    self.min_value.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Max Value".cell(),
-                    self.max_value.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Value Range".cell(),
-                    self.value_range.clone().unwrap_or_default().cell(),
-                ],
-            ]
-            .table()
-            .title(vec![
-                "Constraint Type".cell().bold(true),
-                "Constraint Value".cell().bold(true),
-            ])
-            .bold(true);
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let name_length = self.name.len().to_usize().unwrap_or_default();
+            let range_string = self.value_range.clone().unwrap_or_default().to_string();
 
-            let table_display = table.display().unwrap();
-            write!(f, "{}", table_display)
+            let trimmed_range = if range_string.len() > 60 {
+                &range_string[..60]
+            } else {
+                &range_string
+            };
+            write!(f, "+{:<}+\n", "-".repeat(name_length + 178)).unwrap_or_default();
+            write!(
+                f,
+                "|{:<width1$}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<width2$}|\n",
+                "Name",
+                "Data Type",
+                "Nullable",
+                "Unique",
+                "Min Length",
+                "Max Length",
+                "Min Value",
+                "Max Value",
+                "Value Range",
+                width1 = name_length,
+                width2 = 60
+            ).unwrap_or_default();
+            write!(f, "+{:<}+\n", "-".repeat(name_length + 178)).unwrap_or_default();
+            write!(
+                f,
+                "|{:<width1$}\t| {:<width2$}\t| {:<width3$}\t| {:<width4$}\t| {:<width5$}\t| {:<width6$}\t| {:<width7$}\t| {:<width8$}\t| {:<width9$}|\n",
+                self.name,
+                self.data_type.to_string(),
+                self.nullable,
+                self.unique,
+                self.min_length.unwrap_or_default(),
+                self.max_length.unwrap_or_default(),
+                self.min_value.unwrap_or_default(),
+                self.max_value.unwrap_or_default(),
+                trimmed_range, 
+                width1 = name_length,
+                width2 = 10,
+                width3 = 10,
+                width4 = 10,
+                width5 = 10,
+                width6 = 10,
+                width7 = 10,
+                width8 = 10,
+                width9 = 60
+                ).unwrap_or_default();
+            write!(f, "+{:<}+\n", "-".repeat(name_length + 178))
         }
     }
 
@@ -184,7 +178,13 @@ pub mod constraints {
         pub fn modify(&mut self, name: &str, ctype: &str, value: &str) -> () {
             if let Some(constraint) = self.set.iter_mut().find(|c| c.name == name) {
                 match ctype {
-                    //"data_type" => constraint.data_type = String::from(value),
+                    "data_type" => match value {
+                        "str" => constraint.data_type = DataType::Utf8,
+                        "int" => constraint.data_type = DataType::Int32,
+                        "float" => constraint.data_type = DataType::Float64,
+                        "date" => constraint.data_type = DataType::Date,
+                        _ => constraint.data_type = DataType::Null,
+                    },
                     "nullable" => constraint.nullable = bool::from_str(value).unwrap_or_default(),
                     "unique" => constraint.unique = bool::from_str(value).unwrap_or_default(),
                     "min_length" => constraint.min_length = u32::from_str(value).ok(),
@@ -194,7 +194,8 @@ pub mod constraints {
                     "value_range" => constraint.value_range = String::from(value).into(),
                     _ => println!("{:?}", "Please provide a valid constraint name."),
                 }
-                println!("Constraint updated:\n {:?}", constraint)
+                println!("Constraint updated:");
+                println!("{}", constraint)
             } else {
                 println!("{:?}", "Please provide a valid column name.")
             }
@@ -203,45 +204,71 @@ pub mod constraints {
         pub fn save_json(&self) -> Result<String> {
             serde_json::to_string(self)
         }
+    }
 
-        pub fn frame_constraints(data: &DataFrame) -> PolarsResult<DataFrame> {
-            let columns: Vec<&str> = data.get_column_names();
-
-            let mut name: Vec<String> = vec![];
-            let mut dtype: Vec<String> = vec![];
-            let mut nullable: Vec<bool> = vec![];
-            let mut unique: Vec<bool> = vec![];
-            let mut min_length: Vec<Option<u32>> = vec![];
-            let mut max_length: Vec<Option<u32>> = vec![];
-            let mut min_value: Vec<Option<f32>> = vec![];
-            let mut max_value: Vec<Option<f32>> = vec![];
-            let mut value_range: Vec<Option<String>> = vec![];
-
-            for col in columns {
-                let c = Constraint::new(data, col);
-                name.push(c.name);
-                //dtype.push(c.data_type);
-                nullable.push(c.nullable);
-                unique.push(c.unique);
-                min_length.push(c.min_length);
-                max_length.push(c.max_length);
-                min_value.push(c.min_value);
-                max_value.push(c.max_value);
-                value_range.push(c.value_range);
+    impl fmt::Display for ConstraintSet {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let mut max_length: usize = 0;
+            for constraint in &self.set {
+                if constraint.name.len().to_usize().unwrap_or_default() > max_length {
+                    max_length = constraint.name.len().to_usize().unwrap_or_default()
+                }
             }
+            write!(f, "+{:<}+\n", "-".repeat(max_length + 176)).unwrap_or_default();
+            write!(
+                f,
+                "|{:<width1$}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<width2$}|\n",
+                "Name",
+                "Data Type",
+                "Nullable",
+                "Unique",
+                "Min Length",
+                "Max Length",
+                "Min Value",
+                "Max Value",
+                "Value Range",
+                width1 = max_length,
+                width2 = 58
+            )
+            .unwrap_or_default();
+            write!(f, "+{:<}+\n", "-".repeat(max_length + 176)).unwrap_or_default();
+            for constraint in &self.set {
+                let range_string = constraint
+                    .value_range
+                    .clone()
+                    .unwrap_or_default()
+                    .to_string();
 
-            let frame: PolarsResult<DataFrame> = df![
-                "Attribute" => &name,
-                "Data Type" => &dtype,
-                "Nullable" => &nullable,
-                "Unique" => &unique,
-                "Min Length" => &min_length,
-                "Max Length" => &max_length,
-                "Min Value" => &min_value,
-                "Max Value" => &max_value,
-                "Value Range" => &value_range
-            ];
-            frame
+                let trimmed_range = if range_string.len() >= 60 {
+                    &range_string[..57]
+                } else {
+                    &range_string
+                };
+                write!(
+                    f,
+                    "|{:<width1$}\t| {:<width2$}\t| {:<width3$}\t| {:<width4$}\t| {:<width5$}\t| {:<width6$}\t| {:<width7$}\t| {:<width8$}\t| {:<width9$}|\n",
+                    constraint.name,
+                    constraint.data_type.to_string(),
+                    constraint.nullable,
+                    constraint.unique,
+                    constraint.min_length.unwrap_or_default(),
+                    constraint.max_length.unwrap_or_default(),
+                    constraint.min_value.unwrap_or_default(),
+                    constraint.max_value.unwrap_or_default(),
+                    trimmed_range,
+                    width1 = max_length,
+                    width2 = 10,
+                    width3 = 10,
+                    width4 = 10,
+                    width5 = 10,
+                    width6 = 10,
+                    width7 = 10,
+                    width8 = 10,
+                    width9 = 58
+                ).unwrap_or_default();
+                write!(f, "+{:<}+\n", "-".repeat(max_length + 176)).unwrap_or_default();
+            }
+            Ok(())
         }
     }
 }
