@@ -13,8 +13,9 @@ pub mod constraints {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
         pub name: String,
-        #[serde(skip_deserializing, skip_serializing)]
-        pub data_type: DataType,
+        //#[serde(skip_deserializing, skip_serializing)]
+        //pub data_type: DataType,
+        pub data_type: String,
         pub nullable: bool,
         pub unique: bool,
         pub min_length: Option<u32>,
@@ -47,11 +48,11 @@ pub mod constraints {
             }
         }
 
-        fn _get_data_type(data: &DataFrame, colname: &str) -> DataType {
+        fn _get_data_type(data: &DataFrame, colname: &str) -> String {
             data.column(colname)
                 .map(|s| s.dtype())
                 .unwrap_or(&DataType::Null)
-                .clone()
+                .clone().to_string()
         }
 
         fn _is_nullable(data: &DataFrame, colname: &str) -> bool {
@@ -171,11 +172,11 @@ pub mod constraints {
             if let Some(constraint) = self.set.iter_mut().find(|c| c.name == name) {
                 match ctype {
                     "data_type" => match value {
-                        "str" => constraint.data_type = DataType::Utf8,
-                        "int" => constraint.data_type = DataType::Int32,
-                        "float" => constraint.data_type = DataType::Float64,
-                        "date" => constraint.data_type = DataType::Date,
-                        _ => constraint.data_type = DataType::Null,
+                        "str" => constraint.data_type = DataType::Utf8.to_string(),
+                        "int" => constraint.data_type = DataType::Int32.to_string(),
+                        "float" => constraint.data_type = DataType::Float64.to_string(),
+                        "date" => constraint.data_type = DataType::Date.to_string(),
+                        _ => constraint.data_type = DataType::Null.to_string(),
                     },
                     "nullable" => constraint.nullable = bool::from_str(value).unwrap_or_default(),
                     "unique" => constraint.unique = bool::from_str(value).unwrap_or_default(),
