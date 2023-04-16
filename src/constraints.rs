@@ -13,8 +13,6 @@ pub mod constraints {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Constraint {
         pub name: String,
-        //#[serde(skip_deserializing, skip_serializing)]
-        //pub data_type: DataType,
         pub data_type: String,
         pub nullable: bool,
         pub unique: bool,
@@ -88,7 +86,7 @@ pub mod constraints {
         }
 
         pub fn new(data: &DataFrame, colname: &str) -> Constraint {
-            let attribute_contraints = Constraint {
+            return Constraint {
                 name: String::from(colname),
                 data_type: Self::_get_data_type(data, colname),
                 nullable: Self::_is_nullable(data, colname),
@@ -99,7 +97,6 @@ pub mod constraints {
                 max_value: Self::_get_max_value(data, colname),
                 value_range: Self::_get_value_range(data, &colname),
             };
-            attribute_contraints
         }
     }
 

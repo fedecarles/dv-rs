@@ -1,9 +1,10 @@
 pub mod validation {
     use crate::constraints::constraints::*;
-    use cli_table::{Cell, Style, Table};
     use polars::{export::num::ToPrimitive, prelude::*};
+    use serde::{Deserialize, Serialize};
     use std::fmt;
 
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct Validation {
         pub name: String,
         pub data_type: Option<bool>,
@@ -123,8 +124,8 @@ pub mod validation {
             }
         }
 
-        pub fn get_col_validations(data: &DataFrame, constraint: &Constraint) -> Validation {
-            let attribute_validations = Validation {
+        pub fn new(data: &DataFrame, constraint: &Constraint) -> Validation {
+            return Validation {
                 name: String::from(&constraint.name),
                 data_type: Self::_check_data_type(data, constraint),
                 nullable: Self::_check_nullable(data, constraint),
@@ -135,92 +136,124 @@ pub mod validation {
                 max_value: Self::_check_max_value(data, constraint),
                 value_range: Self::_check_value_range(data, constraint),
             };
-            attribute_validations
         }
     }
 
     impl fmt::Display for Validation {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let table = vec![
-                vec!["Name".cell(), self.name.as_str().cell()],
-                vec![
-                    "Data Type".cell(),
-                    self.data_type.unwrap_or_default().cell(),
-                ],
-                vec!["Duplicated".cell(), self.unique.unwrap_or_default().cell()],
-                vec![
-                    "Min Lenght".cell(),
-                    self.min_length.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Max Lenght".cell(),
-                    self.max_length.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Min Value".cell(),
-                    self.min_value.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Max Value".cell(),
-                    self.max_value.unwrap_or_default().cell(),
-                ],
-                vec![
-                    "Value Range".cell(),
-                    self.value_range.unwrap_or_default().cell(),
-                ],
-            ]
-            .table()
-            .title(vec![
-                "Constraint Type".cell().bold(true),
-                "Number of Breaks".cell().bold(true),
-            ])
-            .bold(true);
+            let name_length = self.name.len().to_usize().unwrap_or_default();
+            let range_string = self.value_range.clone().unwrap_or_default().to_string();
 
-            let table_display = table.display().unwrap();
-            write!(f, "{}", table_display)
+            let trimmed_range = if range_string.len() > 60 {
+                &range_string[..60]
+            } else {
+                &range_string
+            };
+            write!(f, "+{:<}+\n", "-".repeat(name_length + 178)).unwrap_or_default();
+            write!(
+                f,
+                "|{:<width1$}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<}\t| {:<width2$}|\n",
+                "Name",
+                "Data Type",
+                "Nullable",
+                "Unique",
+                "Min Length",
+                "Max Length",
+                "Min Value",
+                "Max Value",
+                "Value Range",
+                width1 = name_length,
+                width2 = 60
+            ).unwrap_or_default();
+            write!(f, "+{:<}+\n", "-".repeat(name_length + 178)).unwrap_or_default();
+            write!(
+                f,
+                "|{:<width1$}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<60}|\n",
+                self.name,
+                self.data_type.unwrap_or_default().to_string(),
+                self.nullable.unwrap_or_default(),
+                self.unique.unwrap_or_default(),
+                self.min_length.unwrap_or_default(),
+                self.max_length.unwrap_or_default(),
+                self.min_value.unwrap_or_default(),
+                self.max_value.unwrap_or_default(),
+                trimmed_range, 
+                width1 = name_length,
+                ).unwrap_or_default();
+            write!(f, "+{:<}+\n", "-".repeat(name_length + 178))
+
         }
     }
 
-    pub fn frame_validation(
-        data: &DataFrame,
-        constraint_set: &Vec<Constraint>,
-    ) -> PolarsResult<DataFrame> {
-        //let columns: Vec<&str> = data.get_column_names();
+    #[derive(Serialize, Deserialize, Debug)]
+    pub struct ValidationSet {
+        pub name: String,
+        pub set: Vec<Validation>,
+    }
 
-        let mut name: Vec<String> = vec![];
-        let mut dtype: Vec<bool> = vec![];
-        let mut nullable: Vec<u32> = vec![];
-        let mut unique: Vec<u32> = vec![];
-        let mut min_length: Vec<Option<u32>> = vec![];
-        let mut max_length: Vec<Option<u32>> = vec![];
-        let mut min_value: Vec<Option<u32>> = vec![];
-        let mut max_value: Vec<Option<u32>> = vec![];
-        let mut value_range: Vec<Option<u32>> = vec![];
-
-        for c in constraint_set {
-            let v = Validation::get_col_validations(data, &c);
-            name.push(v.name);
-            dtype.push(v.data_type.unwrap_or_default());
-            nullable.push(v.nullable.unwrap_or_default());
-            unique.push(v.unique.unwrap_or_default());
-            min_length.push(v.min_length);
-            max_length.push(v.max_length);
-            min_value.push(v.min_value);
-            max_value.push(v.max_value);
-            value_range.push(v.value_range);
+    impl ValidationSet {
+        pub fn new(data: &DataFrame, constraint_set: &ConstraintSet) -> ValidationSet {
+            //let columns: Vec<&str> = data.get_column_names();
+            let mut validation_set: Vec<Validation> = vec![];
+            for c in &constraint_set.set {
+                let validation = Validation::new(&data, &c);
+                validation_set.push(validation)
+            }
+            return ValidationSet {
+                name: String::from("XXX"),
+                set: validation_set,
+            }
         }
-
-        let frame: PolarsResult<DataFrame> = df![
-            "Attribute" => &name,
-            "Data Type" => &dtype,
-            "Nullable" => &nullable,
-            "Unique" => &unique,
-            "Min Length" => &min_length,
-            "Max Length" => &max_length,
-            "Min Value" => &min_value,
-            "Max Value" => &max_value,
-            "Value Range" => &value_range
-        ];
-        frame
+    }
+    impl fmt::Display for ValidationSet {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let mut name_length: usize = 0;
+            for validation in &self.set {
+                if validation.name.len().to_usize().unwrap_or_default() > name_length {
+                    name_length = validation.name.len().to_usize().unwrap_or_default()
+                }
+            }
+            write!(f, "+{:<}{:<}+\n",
+                "-".repeat(name_length),
+                "-".repeat(149-name_length)).unwrap_or_default();
+            write!(
+                f,
+                "| {:<width1$}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10} |\n",
+                "Name",
+                "Data Type",
+                "Nullable",
+                "Unique",
+                "Min Length",
+                "Max Length",
+                "Min Value",
+                "Max Value",
+                "Value Range",
+                width1 = name_length,
+            )
+            .unwrap_or_default();
+            write!(f, "+{:<}{:<}+\n",
+                "-".repeat(name_length),
+                "-".repeat(149-name_length)).unwrap_or_default();
+            for validation in &self.set {
+               write!(
+                    f,
+                    "| {:<width1$}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11} |\n",
+                    validation.name,
+                    validation.data_type.unwrap_or_default().to_string(),
+                    validation.nullable.unwrap_or_default(),
+                    validation.unique.unwrap_or_default(),
+                    validation.min_length.unwrap_or_default(),
+                    validation.max_length.unwrap_or_default(),
+                    validation.min_value.unwrap_or_default(),
+                    validation.max_value.unwrap_or_default(),
+                    validation.value_range.unwrap_or_default(),
+                    width1 = name_length,
+                ).unwrap_or_default();
+                write!(f, "+{:<}{:<}+\n",
+                    "-".repeat(name_length),
+                    "-".repeat(149-name_length)).unwrap_or_default();
+            }
+            Ok(())
+        }
     }
 }
