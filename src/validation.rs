@@ -3,6 +3,9 @@ pub mod validation {
     use polars::{export::num::ToPrimitive, prelude::*};
     use serde::{Deserialize, Serialize};
     use std::fmt;
+    use std::fs::File;
+    use std::path::Path;
+    use csv::Writer;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Validation {
@@ -203,6 +206,25 @@ pub mod validation {
                 name: String::from("XXX"),
                 set: validation_set,
             }
+        }
+        pub fn save_csv<T: AsRef<Path>>(&self, filepath: T) -> Result<(), String> {
+            let file_path = filepath.as_ref();
+
+            if let Some(ext) = file_path.extension() {
+                if ext != "csv" {
+                    return Err(String::from("File path must have the .csv extension"));
+                }
+            } else {
+                return Err(String::from("File path must have the .csv extension"));
+            }
+
+            let file = File::create(file_path).map_err(|e| format!("Failed to create file: {}", e))?;
+            let mut writer = Writer::from_writer(file);
+
+            for validation in &self.set {
+                writer.serialize(validation).map_err(|e| format!("Failed to serialize data: {}", e))?;
+            }
+            Ok(())
         }
     }
     impl fmt::Display for ValidationSet {

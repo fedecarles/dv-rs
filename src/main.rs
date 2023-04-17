@@ -44,7 +44,8 @@ fn main() {
     //cons.modify("age", "data_type", "str");
 
     let y = ValidationSet::new(&validate_df, &cons);
-    println!("{}", y)
+    println!("{}", y);
+    y.save_csv("test_data/validation.csv");
 
     //let json = serde_json::to_string(&cons);
     //println!("{:?}", json);

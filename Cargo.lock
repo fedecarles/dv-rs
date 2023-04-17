@@ -402,6 +402,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "cli-table",
+ "csv",
  "polars",
  "serde",
  "serde_json",

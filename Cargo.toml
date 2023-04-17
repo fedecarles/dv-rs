@@ -11,6 +11,7 @@ serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 cli-table = {version="0.4"}
 clap = {version="4.1.4", features=["derive", "cargo"]}
+csv = {version="1.1.6"}
 
 [env]
 POLARS_FMT_MAX_COLS="-1"
