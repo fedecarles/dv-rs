@@ -54,7 +54,7 @@
       "max_length": 3,
       "min_value": null,
       "max_value": null,
-      "value_range": "Yes, No"
+      "value_range": "No, Yes"
     },
     {
       "name": "work_type",
@@ -65,7 +65,7 @@
       "max_length": 13,
       "min_value": null,
       "max_value": null,
-      "value_range": "Self-employed, Private, null, children, Govt_job"
+      "value_range": "Self-employed, Private, null, Govt_job, children"
     },
     {
       "name": "Residence_type",
@@ -76,7 +76,7 @@
       "max_length": 5,
       "min_value": null,
       "max_value": null,
-      "value_range": "Urban, Rural"
+      "value_range": "Rural, Urban"
     },
     {
       "name": "avg_glucose_level",
@@ -109,7 +109,7 @@
       "max_length": 15,
       "min_value": null,
       "max_value": null,
-      "value_range": "formerly smoked, bad_category, never smoked, Unknown, smokes"
+      "value_range": "bad_category, smokes, formerly smoked, never smoked, Unknown"
     }
   ]
 }

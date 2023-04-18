@@ -280,3 +280,46 @@ pub mod validation {
         }
     }
 }
+
+mod tests {
+    use crate::constraints::constraints::Constraint;
+    use crate::validation::validation::Validation;
+    use polars::{export::num::ToPrimitive, prelude::*};
+
+    #[test]
+    fn test_validations() {
+        let df_good: DataFrame = CsvReader::from_path("test_data/brain_stroke.csv")
+            .unwrap()
+            .finish()
+            .unwrap();
+        let df_bad: DataFrame = CsvReader::from_path("test_data/brain_stroke_bad.csv")
+            .unwrap()
+            .finish()
+            .unwrap();
+
+        let constraint = Constraint::new(&df_good, "hypertension");
+        let validation = Validation::new(&df_bad, &constraint);
+        assert_eq!(validation.nullable, Some(2));
+
+        let constraint = Constraint::new(&df_good, "gender");
+        let validation = Validation::new(&df_bad, &constraint);
+        assert_eq!(validation.min_length, Some(2));
+
+        let constraint = Constraint::new(&df_good, "bmi");
+        let validation = Validation::new(&df_bad, &constraint);
+        assert_eq!(validation.min_value, Some(1));
+
+        let constraint = Constraint::new(&df_good, "Residence_type");
+        let validation = Validation::new(&df_bad, &constraint);
+        assert_eq!(validation.value_range, Some(3));
+
+        let constraint = Constraint::new(&df_good, "bmi");
+        let validation = Validation::new(&df_bad, &constraint);
+        assert_eq!(validation.min_value, Some(1));
+
+        let constraint = Constraint::new(&df_good, "avg_glucose_level");
+        let validation = Validation::new(&df_bad, &constraint);
+        assert_eq!(validation.max_value, Some(2));
+
+    }
+}
