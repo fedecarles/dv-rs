@@ -6,11 +6,12 @@ pub mod validation {
     use std::fs::File;
     use std::path::Path;
     use csv::Writer;
+    use std::borrow::Cow;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Validation {
         pub name: String,
-        pub data_type: Option<bool>,
+        pub data_type: bool,
         pub nullable: Option<u32>,
         pub unique: Option<u32>,
         pub min_length: Option<u32>,
@@ -21,31 +22,28 @@ pub mod validation {
     }
 
     impl Validation {
-        fn _check_data_type(data: &DataFrame, constraint: &Constraint) -> Option<bool> {
-            let col = data.column(&constraint.name);
-            let dtype: String = match col {
-                Ok(s) => s.dtype().clone().to_string(),
-                Err(_) => DataType::Null.to_string(),
-            };
-            if dtype == constraint.data_type {
-                Some(true)
+        fn _check_data_type(data: &DataFrame, constraint: &Constraint) -> bool {
+            if let Ok(col) = data.column(&constraint.name) {
+                col.dtype().to_string() == constraint.data_type
             } else {
-                Some(false)
+                false
             }
         }
+
         fn _check_nullable(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
-            if constraint.nullable == true {
-                return None;
+            if !constraint.nullable {
+                if let Ok(col) = data.column(&constraint.name) {
+                    col.null_count().to_u32()
+                } else {
+                    return None
+                }
             } else {
-                let col = data.column(&constraint.name);
-                return match col {
-                    Ok(s) => s.null_count().to_u32(),
-                    Err(_) => None,
-                };
+                return None
             }
         }
+
         fn _check_duplicates(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
-            if constraint.unique == true {
+            if !constraint.unique {
                 return None;
             } else {
                 let col = data.column(&constraint.name);
@@ -55,6 +53,7 @@ pub mod validation {
                 };
             }
         }
+
         fn _check_min_length(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
             let col = data.column(&constraint.name);
             let min_length = match col {
@@ -87,36 +86,38 @@ pub mod validation {
                 Err(_) => None,
             }
         }
-        fn _check_min_value(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
-            let col = data.column(&constraint.name);
 
-            match col {
-                Ok(s) => s
-                    .lt(constraint.min_value.unwrap_or_default())
-                    .unwrap_or_default()
-                    .sum(),
-                Err(_) => None,
+        fn _check_min_value(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
+            if let Ok(col) = data.column(&constraint.name) {
+                col.lt(constraint.min_value.unwrap_or_default())
+                .unwrap_or_default()
+                .sum()
+            } else {
+                return None
             }
         }
 
         fn _check_max_value(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
-            let col = data.column(&constraint.name);
-
-            match col {
-                Ok(s) => s
-                    .gt(constraint.min_value.unwrap_or_default())
-                    .unwrap_or_default()
-                    .sum(),
-                Err(_) => None,
+            if let Ok(col) = data.column(&constraint.name) {
+                col.gt(constraint.max_value.unwrap_or_default())
+                .unwrap_or_default()
+                .sum()
+            } else {
+                return None
             }
         }
+
         fn _check_value_range(data: &DataFrame, constraint: &Constraint) -> Option<u32> {
             let col = data.column(&constraint.name);
-            let ranges_string = &constraint.value_range;
-            let ranges: Vec<String> = match ranges_string {
-                Some(s) => s.split(", ").map(str::to_string).collect(),
-                None => vec![String::from("null")],
+            let ranges_string = constraint.value_range.as_ref().map(|s| s.as_str());
+            if ranges_string.is_none() {
+                return None;
+            }
+            let ranges: Cow<'_, [String]> = match ranges_string {
+                Some(s) => Cow::from(s.split(", ").map(str::to_string).collect::<Vec<_>>()),
+                None => Cow::from(vec![String::from("null")]),
             };
+            println!("{:?}", ranges);
             match col {
                 Ok(s) => s
                     .is_in(&Series::new("ranges", &ranges))
@@ -173,7 +174,7 @@ pub mod validation {
                 f,
                 "|{:<width1$}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<10}\t| {:<60}|\n",
                 self.name,
-                self.data_type.unwrap_or_default().to_string(),
+                self.data_type,
                 self.nullable.unwrap_or_default(),
                 self.unique.unwrap_or_default(),
                 self.min_length.unwrap_or_default(),
@@ -261,7 +262,7 @@ pub mod validation {
                     f,
                     "| {:<width1$}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11}\t| {:<11} |\n",
                     validation.name,
-                    validation.data_type.unwrap_or_default().to_string(),
+                    validation.data_type,
                     validation.nullable.unwrap_or_default(),
                     validation.unique.unwrap_or_default(),
                     validation.min_length.unwrap_or_default(),

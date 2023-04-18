@@ -36,7 +36,7 @@ fn main() {
     //println!("{:?}", x);
 
     let mut cons = ConstraintSet::new(&constraint_df);
-    //println!("{}", cons);
+    println!("{}", cons);
     //cons.modify("age", "nullable", "true");
     //cons.save_json("test_data/test.json");
     //cons.modify("gnder", "max_length", "5");
@@ -45,7 +45,7 @@ fn main() {
 
     let y = ValidationSet::new(&validate_df, &cons);
     println!("{}", y);
-    y.save_csv("test_data/validation.csv");
+    y.save_csv("test_data/validation");
 
     //let json = serde_json::to_string(&cons);
     //println!("{:?}", json);

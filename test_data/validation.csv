@@ -1,11 +1,11 @@
 name,data_type,nullable,unique,min_length,max_length,min_value,max_value,value_range
-gender,true,0,1,0,0,,,0
-age,true,,1,,,0,4976,4981
+gender,true,0,1,1,0,,,1
+age,true,5,1,,,0,4976,4981
 hypertension,true,0,1,,,0,480,4981
 heart_disease,true,0,1,,,0,275,4981
 ever_married,true,0,1,0,0,,,0
-work_type,true,,1,0,0,,,3
-Residence_type,true,0,1,0,0,,,0
+work_type,true,0,1,0,0,,,3
+Residence_type,true,1,1,0,2,,,3
 avg_glucose_level,true,0,1,,,0,4980,4981
-bmi,true,,1,,,0,4979,4981
+bmi,true,1,1,,,0,4979,4981
 smoking_status,true,0,1,0,0,,,0

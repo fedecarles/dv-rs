@@ -18,8 +18,8 @@ pub mod constraints {
         pub unique: bool,
         pub min_length: Option<u32>,
         pub max_length: Option<u32>,
-        pub min_value: Option<f32>,
-        pub max_value: Option<f32>,
+        pub min_value: Option<f64>,
+        pub max_value: Option<f64>,
         pub value_range: Option<String>,
     }
 
@@ -77,11 +77,11 @@ pub mod constraints {
                 .and_then(|s| s.utf8().map(|s| s.str_lengths().max()).unwrap_or_default())
         }
 
-        fn _get_min_value(data: &DataFrame, colname: &str) -> Option<f32> {
+        fn _get_min_value(data: &DataFrame, colname: &str) -> Option<f64> {
             data.column(colname).ok().and_then(|s| s.min())
         }
 
-        fn _get_max_value(data: &DataFrame, colname: &str) -> Option<f32> {
+        fn _get_max_value(data: &DataFrame, colname: &str) -> Option<f64> {
             data.column(colname).ok().and_then(|s| s.max())
         }
 
@@ -179,8 +179,8 @@ pub mod constraints {
                     "unique" => constraint.unique = bool::from_str(value).unwrap_or_default(),
                     "min_length" => constraint.min_length = u32::from_str(value).ok(),
                     "max_length" => constraint.max_length = u32::from_str(value).ok(),
-                    "min_value" => constraint.min_value = f32::from_str(value).ok(),
-                    "max_value" => constraint.max_value = f32::from_str(value).ok(),
+                    "min_value" => constraint.min_value = f64::from_str(value).ok(),
+                    "max_value" => constraint.max_value = f64::from_str(value).ok(),
                     "value_range" => constraint.value_range = String::from(value).into(),
                     _ => println!("{:?}", "Please provide a valid constraint name."),
                 }
