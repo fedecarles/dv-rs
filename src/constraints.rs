@@ -5,12 +5,13 @@ pub mod constraints {
     use std::collections::HashSet;
     use std::fmt;
     use std::str::FromStr;
-    use std::fs::File;
     use std::io::Write;
     use std::path::Path;
+    use std::fs::File;
+    use std::io::prelude::*;
 
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub struct Constraint {
         pub name: String,
         pub data_type: String,
@@ -145,7 +146,7 @@ pub mod constraints {
         }
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub struct ConstraintSet {
         pub name: String,
         pub set: Vec<Constraint>,
@@ -200,6 +201,14 @@ pub mod constraints {
             file.write_all(json.as_bytes()).map_err(|err| err.to_string())?;
 
             Ok(())
+        }
+
+        pub fn read_constraints(filepath: &str) -> Result<ConstraintSet, Box<dyn std::error::Error>> {
+            let mut file = File::open(filepath)?;
+            let mut contents = String::new();
+            file.read_to_string(&mut contents)?;
+            let set: ConstraintSet = serde_json::from_str(&contents)?;
+            Ok(set)
         }
     }
 
@@ -258,4 +267,58 @@ pub mod constraints {
             Ok(())
         }
     }
+}
+
+mod tests {
+
+    use super::constraints::*;
+    use polars::prelude::*;
+
+    #[test]
+    fn generate_constraint() {
+        let df: DataFrame = CsvReader::from_path("test_data/brain_stroke.csv")
+            .unwrap()
+            .finish()
+            .unwrap();
+
+        // Test constraint creation.
+        let constraint = Constraint::new(&df, "age");
+        assert_eq!(constraint.name, "age");
+        assert_eq!(constraint.data_type, "f64");
+        assert_eq!(constraint.nullable, true);
+        assert_eq!(constraint.unique, false);
+        assert_eq!(constraint.min_length, None);
+        assert_eq!(constraint.max_length, None);
+        assert_eq!(constraint.min_value, Some(0.08));
+        assert_eq!(constraint.max_value, Some(82.00));
+        assert_eq!(constraint.value_range, None);
+
+        let constraint = Constraint::new(&df, "Residence_type");
+        assert_eq!(constraint.name, "Residence_type");
+        assert_eq!(constraint.data_type, "str");
+        assert_eq!(constraint.nullable, false);
+        assert_eq!(constraint.unique, false);
+        assert_eq!(constraint.min_length, Some(5));
+        assert_eq!(constraint.max_length, Some(5));
+        assert_eq!(constraint.min_value, None);
+        assert_eq!(constraint.max_value, None);
+        assert_eq!(constraint.value_range, Some("Urban, Rural".to_string()));
+    }
+
+    #[test]
+    fn save_and_load_set() {
+        let df: DataFrame = CsvReader::from_path("test_data/brain_stroke.csv")
+            .unwrap()
+            .finish()
+            .unwrap();
+
+        // Test save and load constraint set
+        let set = ConstraintSet::new(&df);
+        set.save_json("test_data/saved_constraints.json");
+        let new_set = ConstraintSet::read_constraints("test_data/saved_constraints.json");
+
+        assert_eq!(set, new_set.unwrap());
+
+    }
+
 }

@@ -1,0 +1,115 @@
+{
+  "name": "XXX",
+  "set": [
+    {
+      "name": "gender",
+      "data_type": "str",
+      "nullable": false,
+      "unique": false,
+      "min_length": 4,
+      "max_length": 6,
+      "min_value": null,
+      "max_value": null,
+      "value_range": "Female, Male"
+    },
+    {
+      "name": "age",
+      "data_type": "f64",
+      "nullable": true,
+      "unique": false,
+      "min_length": null,
+      "max_length": null,
+      "min_value": 0.08,
+      "max_value": 82.0,
+      "value_range": null
+    },
+    {
+      "name": "hypertension",
+      "data_type": "f64",
+      "nullable": false,
+      "unique": false,
+      "min_length": null,
+      "max_length": null,
+      "min_value": 0.0,
+      "max_value": 2.0,
+      "value_range": null
+    },
+    {
+      "name": "heart_disease",
+      "data_type": "f64",
+      "nullable": false,
+      "unique": false,
+      "min_length": null,
+      "max_length": null,
+      "min_value": 0.0,
+      "max_value": 1.0,
+      "value_range": null
+    },
+    {
+      "name": "ever_married",
+      "data_type": "str",
+      "nullable": false,
+      "unique": false,
+      "min_length": 2,
+      "max_length": 3,
+      "min_value": null,
+      "max_value": null,
+      "value_range": "Yes, No"
+    },
+    {
+      "name": "work_type",
+      "data_type": "str",
+      "nullable": true,
+      "unique": false,
+      "min_length": 7,
+      "max_length": 13,
+      "min_value": null,
+      "max_value": null,
+      "value_range": "Self-employed, Private, null, children, Govt_job"
+    },
+    {
+      "name": "Residence_type",
+      "data_type": "str",
+      "nullable": false,
+      "unique": false,
+      "min_length": 5,
+      "max_length": 5,
+      "min_value": null,
+      "max_value": null,
+      "value_range": "Urban, Rural"
+    },
+    {
+      "name": "avg_glucose_level",
+      "data_type": "f64",
+      "nullable": false,
+      "unique": false,
+      "min_length": null,
+      "max_length": null,
+      "min_value": -25.0,
+      "max_value": 700.0,
+      "value_range": null
+    },
+    {
+      "name": "bmi",
+      "data_type": "f64",
+      "nullable": true,
+      "unique": false,
+      "min_length": null,
+      "max_length": null,
+      "min_value": 0.0,
+      "max_value": 100.0,
+      "value_range": null
+    },
+    {
+      "name": "smoking_status",
+      "data_type": "str",
+      "nullable": false,
+      "unique": false,
+      "min_length": 6,
+      "max_length": 15,
+      "min_value": null,
+      "max_value": null,
+      "value_range": "formerly smoked, bad_category, never smoked, Unknown, smokes"
+    }
+  ]
+}
