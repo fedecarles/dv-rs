@@ -117,7 +117,6 @@ pub mod validation {
                 Some(s) => Cow::from(s.split(", ").map(str::to_string).collect::<Vec<_>>()),
                 None => Cow::from(vec![String::from("null")]),
             };
-            println!("{:?}", ranges);
             match col {
                 Ok(s) => s
                     .is_in(&Series::new("ranges", &ranges))
